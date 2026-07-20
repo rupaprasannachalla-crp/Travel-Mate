@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TravelMate</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center center/cover;
+      color: #fff;
+    }
+    header {
+      background: rgba(0,0,0,0.6);
+      padding: 15px;
+      text-align: center;
+    }
+    nav a {
+      margin: 0 15px;
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .container {
+      padding: 20px;
+      background: rgba(0,0,0,0.7);
+      margin: 20px;
+      border-radius: 10px;
+    }
+    input, select, button {
+      display: block;
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+      border-radius: 5px;
+      border: none;
+    }
+    button {
+      background: #ff9800;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TravelMate</h1>
+    <nav>
+      <a href="#" onclick="showPage('home')">Home</a>
+      <a href="#" onclick="showPage('booking')">Booking</a>
+      <a href="#" onclick="showPage('myBookings')">My Bookings</a>
+      <a href="#" onclick="showPage('profile')">Profile</a>
+    </nav>
+  </header>
+
+  
+  <div id="home" class="container">
+    <h2>Welcome to TravelMate</h2>
+    <p>Plan and book your safe journeys with ease 🚆 ✈️ 🚌</p>
+  </div>
+
+  
+  <div id="booking" class="container" style="display:none;">
+    <h2>Book Your Trip</h2>
+    <input type="text" id="name" placeholder="Enter Your Name" />
+    <input type="email" id="email" placeholder="Enter Your Email" />
+    <input type="text" id="origin" placeholder="Enter Source" />
+    <input type="text" id="destination" placeholder="Enter Destination" />
+    <input type="number" id="companions" placeholder="No. of Companions" />
+    <select id="mode">
+      <option value="Bus">Bus</option>
+      <option value="Cab">Cab</option>
+      <option value="Train">Train</option>
+      <option value="Metro">Metro</option>
+    </select>
+    <input type="date" id="tripdate" />
+    <select id="payment_method">
+      <option value="Credit Card">Credit Card</option>
+      <option value="Debit Card">Debit Card</option>
+      <option value="UPI">UPI</option>
+    </select>
+    <button onclick="bookTrip()">Book Now</button>
+  </div>
+
+  
+  <div id="summary" class="container" style="display:none;">
+    <h2>Booking Summary</h2>
+    <div id="summaryDetails"></div>
+    <button onclick="goToPayment()">Proceed to Payment</button>
+  </div>
+
+  
+  <div id="payment" class="container" style="display:none;">
+    <h2>Payment</h2>
+    <p>Choose Payment Option and confirm your booking</p>
+    <button onclick="confirmPayment('Success')">Pay Now ✅</button>
+    <button onclick="confirmPayment('Failed')">Fail Payment ❌</button>
+  </div>
+
+  
+  <div id="ticket" class="container" style="display:none;">
+    <h2>Your Ticket</h2>
+    <div id="ticketDetails"></div>
+  </div>
+
+ 
+  <div id="myBookings" class="container" style="display:none;">
+    <h2>My Bookings</h2>
+    <div id="bookingsList">No bookings yet.</div>
+  </div>
+
+  
+  <div id="profile" class="container" style="display:none;">
+    <h2>Profile</h2>
+    <p><strong>Name:</strong> <span id="profileName">Demo User</span></p>
+    <p><strong>Email:</strong> <span id="profileEmail">demo@travelmate.com</span></p>
+  </div>
+
+  
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+  <script>
+    const { createClient } = supabase;
+    const SUPABASE_URL = "https://xfpubdyucidxgdfgqzmm.supabase.co"; 
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmcHViZHl1Y2lkeGdkZmdxem1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyMDIxMTcsImV4cCI6MjA3Mzc3ODExN30.L_1gU6uG1aoURB50GGzxhUS-IRZmW6kG-OapSuCM0pk"; 
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    function showPage(pageId) {
+      document.querySelectorAll('.container').forEach(div => div.style.display = "none");
+      document.getElementById(pageId).style.display = "block";
+      if (pageId === 'myBookings') loadBookings();
+    }
+
+    
+    function predictTrip(destination, mode) {
+      let safety = (destination.toLowerCase() === "delhi") ? "Risky" : "Safe";
+      let distance = Math.floor(Math.random()*500+100) + " km";
+      let duration = Math.floor(Math.random()*10+2) + " hrs";
+      let cost = (mode === "Car") ? 10*parseInt(distance) : (mode === "Bus") ? 5*parseInt(distance) : 3*parseInt(distance);
+      return { safety, distance, duration, cost };
+    }
+
+    async function bookTrip() {
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const origin = document.getElementById('origin').value;
+      const destination = document.getElementById('destination').value;
+      const companions = document.getElementById('companions').value;
+      const mode = document.getElementById('mode').value;
+      const tripdate = document.getElementById('tripdate').value;
+      const payment_method = document.getElementById('payment_method').value;
+
+      if(!name||!email||!origin||!destination||!companions||!mode||!tripdate||!payment_method){
+        alert("Please fill all fields");
+        return;
+      }
+
+      
+      const { safety, distance, duration, cost } = predictTrip(destination, mode);
+
+      
+      window.currentBooking = { name, email, origin, destination, companions, mode, tripdate, payment_method, safety, distance, duration, cost };
+
+      document.getElementById("summaryDetails").innerHTML = `
+        <p><strong>${origin}</strong> ➝ <strong>${destination}</strong></p>
+        <p>Mode: ${mode} | Date: ${tripdate} | Companions: ${companions}</p>
+        <p>Distance: ${distance} | Duration: ${duration}</p>
+        <p>Safety: ${safety}</p>
+        <p><strong>Estimated Cost: ₹${cost}</strong></p>
+      `;
+      showPage("summary");
+    }
+
+    function goToPayment() {
+      showPage("payment");
+    }
+
+    async function confirmPayment(status) {
+      if (!window.currentBooking) return;
+
+      const booking = { ...window.currentBooking, payment_status: status };
+
+      
+      let { error } = await db.from("Travel_mate").insert([booking]);
+      if (error) {
+        alert("Error saving booking: " + error.message);
+        return;
+      }
+
+      document.getElementById("ticketDetails").innerHTML = `
+        <h3>🎫 Travel Ticket</h3>
+        <p>Name: ${booking.name}</p>
+        <p>Email: ${booking.email}</p>
+        <p>${booking.origin} ➝ ${booking.destination}</p>
+        <p>Mode: ${booking.mode} | Date: ${booking.tripdate}</p>
+        <p>Distance: ${booking.distance} | Duration: ${booking.duration}</p>
+        <p>Safety: ${booking.safety}</p>
+        <p>Companions: ${booking.companions}</p>
+        <p>Payment: ${booking.payment_method} (${booking.payment_status})</p>
+        <p><strong>Total Cost: ₹${booking.cost}</strong></p>
+      `;
+      showPage("ticket");
+    }
+
+    async function loadBookings() {
+      let { data, error } = await db.from("Travel_mate").select("*").order("id", { ascending: false });
+      if (error) {
+        document.getElementById('bookingsList').innerText = "Error fetching bookings.";
+      } else {
+        if (data.length === 0) {
+          document.getElementById('bookingsList').innerText = "No bookings yet.";
+        } else {
+          document.getElementById('bookingsList').innerHTML = data.map(trip =>
+            `<p><strong>${trip.origin}</strong> ➝ <strong>${trip.destination}</strong><br/>
+             Mode: ${trip.mode} | Date: ${trip.tripdate} | Companions: ${trip.companions}<br/>
+             Distance: ${trip.distance} | Duration: ${trip.duration} | Safety: ${trip.safety}<br/>
+             Cost: ₹${trip.cost} | Payment: ${trip.payment_method} (${trip.payment_status})</p>`
+          ).join("");
+        }
+      }
+    }
+  </script>
+</body>
+</html>
